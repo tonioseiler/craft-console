@@ -1,0 +1,48 @@
+{
+  "name": "furbo/craft-schedule",
+  "description": "Schedule and manage recurring Craft CMS console tasks with a fluent API.",
+  "type": "craft-plugin",
+  "license": "proprietary",
+  "keywords": [
+    "cms",
+    "craftcms",
+    "schedule",
+    "cron",
+    "tasks",
+    "scheduler"
+  ],
+  "authors": [
+    {
+      "name": "Furbo GmbH",
+      "homepage": "https://furbo.ch/"
+    }
+  ],
+  "support": {
+    "email": "support@furbo.ch"
+  },
+  "require": {
+    "php": ">=8.2",
+    "craftcms/cms": "^5.0.0-beta.1"
+  },
+  "autoload": {
+    "psr-4": {
+      "furbo\\craftschedule\\": "src/"
+    }
+  },
+  "extra": {
+    "handle": "craft-schedule",
+    "name": "Craft Schedule",
+    "developer": "Furbo GmbH",
+    "class": "furbo\\craftschedule\\CraftSchedule"
+  },
+  "config": {
+    "sort-packages": true,
+    "platform": {
+      "php": "8.2"
+    },
+    "allow-plugins": {
+      "yiisoft/yii2-composer": true,
+      "craftcms/plugin-installer": true
+    }
+  }
+}

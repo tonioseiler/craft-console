@@ -1,0 +1,100 @@
+<style>
+  .schedule-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; }
+  #task-list { margin-top:0.5rem; }
+  .task-row { display:flex; align-items:center; gap:0.75rem; padding:0.6rem 0; border-bottom:1px solid rgba(96,108,122,0.08); }
+  .task-row:last-child { border-bottom:none; }
+  .task-command { font-family:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace; font-size:0.83rem; color:#2b6cb0; min-width:200px; }
+  .task-schedule { font-family:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace; font-size:0.8rem; color:#606c7a; min-width:100px; }
+  .task-params { font-size:0.8rem; color:#8f9aa6; min-width:100px; }
+  .task-actions { display:flex; gap:0.5rem; align-items:center; flex-shrink:0; }
+  .task-actions .btn { font-size:0.78rem; padding:0.2rem 0.6rem; }
+  .empty-state { padding:2rem 0; text-align:center; color:#8f9aa6; }
+</style>
+
+<div class="schedule-header">
+  <h2>{{ 'Scheduled Tasks'|t('craft-schedule') }}</h2>
+</div>
+
+<p class="light">
+  {{ 'Scheduled tasks are defined in code and registered automatically. Use the toggle to enable or disable each task.'|t('craft-schedule') }}
+</p>
+
+<div id="task-list">
+  <div class="flex items-center" style="display:flex;align-items:center;gap:0.5rem;padding:1rem 0;">
+    <div class="spinner"></div>
+    <span>{{ "Loading..."|t('craft-schedule') }}</span>
+  </div>
+</div>
+
+{% js %}
+(function() {
+  var taskList = document.getElementById('task-list');
+
+  function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.appendChild(document.createTextNode(str));
+    return div.innerHTML;
+  }
+
+  function loadTasks() {
+    taskList.innerHTML = '<div class="flex items-center" style="display:flex;align-items:center;gap:0.5rem;padding:1rem 0;"><div class="spinner"></div><span>{{ "Loading..."|t('craft-schedule') }}</span></div>';
+    fetch(Craft.getActionUrl('craft-schedule/schedule/index'), {
+      headers: { 'Accept': 'application/json' },
+      credentials: 'same-origin'
+    })
+    .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(function(data) { renderTasks(data.tasks || []); })
+    .catch(function(e) {
+      taskList.innerHTML = '<p class="error">{{ "Failed to load tasks."|t('craft-schedule') }} ' + escapeHtml(e.message) + '</p>';
+    });
+  }
+
+  function renderTasks(tasks) {
+    if (!tasks.length) {
+      taskList.innerHTML = '<div class="empty-state">{{ "No scheduled tasks registered yet. Define them in your plugin or module init() using Schedule::command(...)->daily();"|t('craft-schedule') }}</div>';
+      return;
+    }
+
+    var html = '';
+    tasks.forEach(function(t) {
+      var enabled = t.enabled && t.enabled !== '0';
+      var params = '';
+      try { var p = JSON.parse(t.params || '[]'); params = p.length ? p.join(' ') : ''; } catch(e) {}
+      html += '<div class="task-row" data-id="' + t.id + '">' +
+        '<div class="task-command">' + escapeHtml(t.command) + '</div>' +
+        '<div class="task-params">' + escapeHtml(params) + '</div>' +
+        '<div class="task-schedule">' + escapeHtml(t.schedule) + '</div>' +
+        '<div class="task-actions">' +
+        '<button type="button" class="btn task-toggle-btn' + (enabled ? ' active' : '') + '" style="' + (enabled ? 'background:#27ae60;color:#fff;' : '') + '">' + (enabled ? '{{ "Enabled"|t('craft-schedule') }}' : '{{ "Disabled"|t('craft-schedule') }}') + '</button>' +
+        '</div></div>';
+    });
+
+    taskList.innerHTML = html;
+
+    taskList.querySelectorAll('.task-toggle-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var row = btn.closest('.task-row');
+        var id = row.getAttribute('data-id');
+
+        fetch(Craft.getActionUrl('craft-schedule/schedule/toggle'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' },
+          credentials: 'same-origin',
+          body: 'id=' + encodeURIComponent(id) + '&' + Craft.csrfTokenName + '=' + encodeURIComponent(Craft.csrfTokenValue)
+        })
+        .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        .then(function(data) {
+          if (data.task) {
+            btn.textContent = data.task.enabled ? '{{ "Enabled"|t('craft-schedule') }}' : '{{ "Disabled"|t('craft-schedule') }}';
+            btn.style.background = data.task.enabled ? '#27ae60' : '';
+            btn.style.color = data.task.enabled ? '#fff' : '';
+          }
+        })
+        .catch(function(e) { alert('Error: ' + e.message); });
+      });
+    });
+  }
+
+  loadTasks();
+})();
+{% endjs %}

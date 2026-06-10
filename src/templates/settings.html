@@ -1,0 +1,35 @@
+{% import '_includes/forms.twig' as forms %}
+
+{% set detectedPath = plugin.detectPhpBinary() %}
+
+{{ forms.autosuggestField({
+    label: 'PHP Binary Path'|t('craft-schedule'),
+    instructions: 'Path to the PHP binary used to run ./craft commands. Leave empty to auto-detect.'|t('craft-schedule'),
+    id: 'phpPath',
+    name: 'phpPath',
+    suggestEnvVars: true,
+    placeholder: detectedPath,
+    value: settings.phpPath,
+}) }}
+
+<p class="light">
+    {{ 'Detected PHP: <code>{path}</code>'|t('craft-schedule', {path: detectedPath})|raw }}
+</p>
+
+<hr>
+
+{% set rootPath = craft.app.getAlias('@root') %}
+
+<h2>{{ 'Setting up the crontab'|t('craft-schedule') }}</h2>
+
+<p>{{ 'Add this line to your server crontab to run scheduled tasks every minute:'|t('craft-schedule') }}</p>
+
+<pre class="code" style="padding:0.75rem;background:#f7f8fa;border-radius:4px;overflow-x:auto;">* * * * * {{ detectedPath }} {{ rootPath }}/craft craft-schedule/run 2>&1 >> /dev/null</pre>
+
+<p>
+    {{ 'Run <code>crontab -e</code> to edit your crontab. The command will check all enabled schedules and execute any that are due.'|t('craft-schedule')|raw }}
+</p>
+
+<p class="light">
+    {{ 'Define your scheduled tasks in code using <code>Schedule::command(...)->daily();</code>'|t('craft-schedule')|raw }}
+</p>
